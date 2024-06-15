@@ -7,6 +7,6 @@ variable "vpc_id" {
 variable "port" {
   type = string
 }
-variable "cidr_blocks" {
-  type = list(string)
+variable "cidr_block" {
+  type = string
 }

@@ -7,8 +7,8 @@ resource "aws_route53_record" "corperate-producrion-record" {
   name    = aws_route53_zone.main.name
   type    = "A"
   alias {
-    name                   = aws_lb.production-alb.dns_name
-    zone_id                = aws_lb.production-alb.zone_id
+    name                   = aws_lb.this.dns_name
+    zone_id                = aws_lb.this.zone_id
     evaluate_target_health = true
   }
 }

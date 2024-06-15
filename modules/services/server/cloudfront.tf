@@ -1,7 +1,7 @@
 resource "aws_cloudfront_distribution" "corperate_cloudfront" {
   origin {
-    domain_name = aws_lb.production-alb.name
-    origin_id   = aws_lb.production-alb.id
+    domain_name = aws_lb.this.name
+    origin_id   = aws_lb.this.id
 
     custom_origin_config {
       http_port              = 80
@@ -36,7 +36,7 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
     # Cache-Control or Expires がリクエストのヘッダーに無い時のデフォルトのTTL。
     default_ttl            = 86400               # デフォルトの1日を明示的に指定。
     viewer_protocol_policy = "redirect-to-https" # HTTPS通信のみ許可する。
-    target_origin_id       = aws_lb.production-alb.id
+    target_origin_id       = aws_lb.this.id
 
 
     max_ttl = 31536000 # デフォルトの365日を明示的に指定。
@@ -54,7 +54,7 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
 
   # アクセスログ設定
   logging_config {
-    bucket          = aws_s3_bucket.cloudfront_logging.bucket_domain_name
+    bucket          = aws_s3_bucket.cloudfront_log_bucket.bucket_domain_name
     include_cookies = true # Cookieもアクセスログに含めたいため有効。
     prefix          = "cloudfront/"
   }

@@ -43,8 +43,8 @@ resource "aws_ecs_service" "corperate_ecs_service" {
     assign_public_ip = false
     security_groups  = [module.nginx_sg.security_group_id]
     subnets = [
-      aws_subnet.ecs_private_subnet_a.id,
-      aws_subnet.ecs_private_subnet_c.id,
+      aws_subnet.private_1a.id,
+      aws_subnet.private_1c.id
     ]
   }
   load_balancer {
@@ -59,9 +59,9 @@ resource "aws_ecs_service" "corperate_ecs_service" {
 
 # Security Group
 module "nginx_sg" {
-  source      = "./security_group"
-  name        = "nginx-sg"
-  vpc_id      = aws_vpc.corporate-production-vpc.id
-  port        = 80
-  cidr_blocks = [aws_vpc.corporate-production-vpc.cidr_block]
+  source     = "../../security_group"
+  name       = "nginx-sg"
+  vpc_id     = aws_vpc.this.id
+  port       = 80
+  cidr_block = aws_vpc.this.cidr_block
 }
