@@ -42,10 +42,7 @@ resource "aws_ecs_service" "corperate_ecs_service" {
   network_configuration {
     assign_public_ip = false
     security_groups  = [module.nginx_sg.security_group_id]
-    subnets = [
-      aws_subnet.private_1a.id,
-      aws_subnet.private_1c.id
-    ]
+    subnets          = aws_subnet.private[*].id
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.ecs.arn

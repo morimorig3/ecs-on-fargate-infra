@@ -1,5 +1,10 @@
+locals {
+  all_ip             = "0.0.0.0/0"
+  availability_zones = ["ap-northeast-1a", "ap-northeast-1c"]
+}
+
 # -----------------------------------------
-# VPC (https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc)
+# VPC
 # -----------------------------------------
 resource "aws_vpc" "this" {
   cidr_block           = "10.0.0.0/16"
@@ -9,31 +14,6 @@ resource "aws_vpc" "this" {
 
   tags = {
     name = "corporate-${var.environment}-vpc"
-  }
-}
-
-# -----------------------------------------
-# Public Network
-# -----------------------------------------
-resource "aws_subnet" "public_1a" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = "10.0.0.0/24" // TODO: 切り方検討
-  availability_zone       = "ap-northeast-1a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${var.environment}-public-subnet-1a"
-  }
-}
-
-resource "aws_subnet" "public_1c" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = "10.0.1.0/24" // TODO: 切り方検討
-  availability_zone       = "ap-northeast-1c"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${var.environment}-public-subnet-1c"
   }
 }
 
@@ -49,129 +29,63 @@ resource "aws_internet_gateway" "this" {
 }
 
 # -----------------------------------------
-# Public Route Table
+# Subnets
 # -----------------------------------------
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.this.id
+  count                   = length(local.availability_zones)
+  availability_zone       = local.availability_zones[count.index]
+  cidr_block              = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index)
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "${var.environment}-public-subnet-${local.availability_zones[count.index]}"
+  }
+}
+
+resource "aws_subnet" "private" {
+  vpc_id                  = aws_vpc.this.id
+  count                   = length(local.availability_zones)
+  availability_zone       = local.availability_zones[count.index]
+  cidr_block              = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index + 128)
+  map_public_ip_on_launch = false
+
+  tags = {
+    name = "${var.environment}-private-subnet-${local.availability_zones[count.index]}"
+  }
+}
+
+# -----------------------------------------
+# Route Table
+# -----------------------------------------
+// Public
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
   tags = {
     name = "${var.environment}-public-route-table"
   }
 }
-
-// Route
 resource "aws_route" "default_route" {
   route_table_id         = aws_route_table.public.id
   gateway_id             = aws_internet_gateway.this.id
-  destination_cidr_block = "0.0.0.0/0"
+  destination_cidr_block = local.all_ip
 }
 
-// Route Table Association
-resource "aws_route_table_association" "public_route_table_association_1a" {
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
   route_table_id = aws_route_table.public.id
-  subnet_id      = aws_subnet.public_1a.id
+  subnet_id      = aws_subnet.public[count.index].id
 }
 
-resource "aws_route_table_association" "public_route_table_association_1c" {
-  route_table_id = aws_route_table.public.id
-  subnet_id      = aws_subnet.public_1c.id
-}
-
-# -----------------------------------------
-# Private Network
-# -----------------------------------------
-resource "aws_subnet" "private_1a" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = "10.0.128.0/24" // TODO: 切り方検討
-  availability_zone       = "ap-northeast-1a"
-  map_public_ip_on_launch = false
-
-  tags = {
-    name = "${var.environment}-private-subnet-1a"
-  }
-}
-
-resource "aws_subnet" "private_1c" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = "10.0.129.0/24" // TODO: 切り方検討
-  availability_zone       = "ap-northeast-1c"
-  map_public_ip_on_launch = false
-
-  tags = {
-    name = "${var.environment}-private-subnet-1c"
-  }
-}
-
-# Route Table
-resource "aws_route_table" "private_1a" {
+// Private
+resource "aws_route_table" "private" {
+  count  = length(aws_subnet.private)
   vpc_id = aws_vpc.this.id
-  tags = {
-    Name = "${var.environment}-private-route-table-1a"
-  }
-}
-resource "aws_route_table" "private_1c" {
-  vpc_id = aws_vpc.this.id
-  tags = {
-    Name = "${var.environment}-private-route-table-1c"
-  }
 }
 
-# Route
-resource "aws_route" "private_1a" {
-  route_table_id         = aws_route_table.private_1a.id
-  nat_gateway_id         = aws_nat_gateway.nat_1a.id
-  destination_cidr_block = "0.0.0.0/0"
-}
-resource "aws_route" "private_1c" {
-  route_table_id         = aws_route_table.private_1c.id
-  nat_gateway_id         = aws_nat_gateway.nat_1c.id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
-# Route Table Association
-resource "aws_route_table_association" "private_1a" {
-  route_table_id = aws_route_table.private_1a.id
-  subnet_id      = aws_subnet.private_1a.id
-}
-
-resource "aws_route_table_association" "private_c" {
-  route_table_id = aws_route_table.private_1c.id
-  subnet_id      = aws_subnet.private_1c.id
-}
-
-# -----------------------------------------
-# Elastic IP Address
-# -----------------------------------------
-resource "aws_eip" "nat_1a" {
-  depends_on = [aws_internet_gateway.this]
-  tags = {
-    Name = "${var.environment}-eip-1a"
-  }
-}
-resource "aws_eip" "nat_1c" {
-  depends_on = [aws_internet_gateway.this]
-  tags = {
-    Name = "${var.environment}-eip-1c"
-  }
-}
-
-# -----------------------------------------
-# Nat Gateway これは消すかも
-# -----------------------------------------
-resource "aws_nat_gateway" "nat_1a" {
-  allocation_id = aws_eip.nat_1a.id
-  subnet_id     = aws_subnet.private_1a.id
-  depends_on    = [aws_internet_gateway.this]
-  tags = {
-    Name = "${var.environment}-nat-gw-1a"
-  }
-}
-resource "aws_nat_gateway" "nat_1c" {
-  allocation_id = aws_eip.nat_1c.id
-  subnet_id     = aws_subnet.private_1c.id
-  depends_on    = [aws_internet_gateway.this]
-  tags = {
-    Name = "${var.environment}-nat-gw-1c"
-  }
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 module "vpc_security_group" {
@@ -179,5 +93,56 @@ module "vpc_security_group" {
   name       = "ecs-sg"
   vpc_id     = aws_vpc.this.id
   port       = 80
-  cidr_block = "0.0.0.0/0"
+  cidr_block = local.all_ip
+}
+
+# -----------------------------------------
+# VPC Endpoints
+# -----------------------------------------
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.ap-northeast-1.s3"
+  vpc_endpoint_type = "Gateway"
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = aws_vpc.this.id
+  service_name        = "com.amazonaws.ap-northeast-1.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoint.id]
+  private_dns_enabled = true
+}
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = aws_vpc.this.id
+  service_name        = "com.amazonaws.ap-northeast-1.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoint.id]
+  private_dns_enabled = true
+}
+
+resource "aws_vpc_endpoint_route_table_association" "private_s3" {
+  count           = length(aws_subnet.private)
+  vpc_endpoint_id = aws_vpc_endpoint.s3.id
+  route_table_id  = aws_route_table.private[count.index].id
+}
+
+resource "aws_security_group" "vpc_endpoint" {
+  name   = "vpc_endpoint_sg"
+  vpc_id = aws_vpc.this.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.this.cidr_block]
+  }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.this.cidr_block]
+  }
 }

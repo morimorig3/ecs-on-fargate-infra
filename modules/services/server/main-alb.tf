@@ -8,10 +8,7 @@ resource "aws_lb" "this" {
   idle_timeout               = 60                                       # セッションのタイムアウト時間(秒)を設定します。
   enable_deletion_protection = var.environment == "prod" ? true : false # 削除保護を有効にするか否かを指定します。本番環境では誤って削除しないよう true を指定します。
   # ALB が所属するサブネットを指定します。
-  subnets = [
-    aws_subnet.public_1a.id,
-    aws_subnet.public_1c.id,
-  ]
+  subnets = aws_subnet.private[*].id
   # バケット名を指定して、アクセスログの保存を有効にします。
   access_logs {
     bucket  = aws_s3_bucket.alb_log_bucket.id
