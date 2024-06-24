@@ -2,22 +2,23 @@
 # Application Load Balancer
 # -----------------------------------------
 resource "aws_lb" "this" {
-  name                       = "${var.environment}-alb"
-  load_balancer_type         = "application"                            # ロードバランサーの種別を設定します。application を指定すると ALB, network を指定すると NLB になります。
-  internal                   = false                                    # インターネット向けなのか VPC 内部向けなのかを指定します。false にするとインターネット向けになります。
-  idle_timeout               = 60                                       # セッションのタイムアウト時間(秒)を設定します。
-  enable_deletion_protection = var.environment == "prod" ? true : false # 削除保護を有効にするか否かを指定します。本番環境では誤って削除しないよう true を指定します。
+  name               = "${var.environment}-alb"
+  load_balancer_type = "application" # ロードバランサーの種別を設定します。application を指定すると ALB, network を指定すると NLB になります。
+  internal           = false         # インターネット向けなのか VPC 内部向けなのかを指定します。false にするとインターネット向けになります。
+  idle_timeout       = 60            # セッションのタイムアウト時間(秒)を設定します。
+  # enable_deletion_protection = var.environment == "prod" ? true : false # 削除保護を有効にするか否かを指定します。本番環境では誤って削除しないよう true を指定します。
+  enable_deletion_protection = false
   # ALB が所属するサブネットを指定します。
-  subnets = aws_subnet.private[*].id
+  subnets = aws_subnet.public[*].id
   # バケット名を指定して、アクセスログの保存を有効にします。
-  access_logs {
-    bucket  = aws_s3_bucket.alb_log_bucket.id
-    prefix  = "alb-log"
-    enabled = true
-  }
+  # access_logs {
+  #   bucket  = aws_s3_bucket.alb_log_bucket.bucket
+  #   prefix  = "alb-log"
+  #   enabled = true
+  # }
   security_groups = [
     module.http_sg.security_group_id,
-    module.https_sg.security_group_id,
+    # module.https_sg.security_group_id,
   ]
 }
 
@@ -48,24 +49,14 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = "80"
   protocol          = "HTTP"
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# 443 番ポートでは HTTPS プロトコルのリクエストを受け付け、固定の HTTP レスポンスを返却
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  # TODO SSL証明書のセッティング後に追記
-  # certificate_arn = [後ほど設定]
-  ssl_policy = "ELBSecurityPolicy-2016-08"
+  # default_action {
+  #   type = "redirect"
+  #   redirect {
+  #     port        = "443"
+  #     protocol    = "HTTPS"
+  #     status_code = "HTTP_301"
+  #   }
+  # }
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -76,8 +67,27 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# 443 番ポートでは HTTPS プロトコルのリクエストを受け付け、固定の HTTP レスポンスを返却
+# resource "aws_lb_listener" "https" {
+#   load_balancer_arn = aws_lb.this.arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   # TODO SSL証明書のセッティング後に追記
+#   # certificate_arn = [後ほど設定]
+#   ssl_policy = "ELBSecurityPolicy-2016-08"
+#   default_action {
+#     type = "fixed-response"
+#     fixed_response {
+#       content_type = "text/plain"
+#       message_body = "これは「HTTPS」です"
+#       status_code  = "200"
+#     }
+#   }
+# }
+
 resource "aws_lb_listener_rule" "ecs" {
-  listener_arn = aws_lb_listener.https.arn
+  # listener_arn = aws_lb_listener.https.arn
+  listener_arn = aws_lb_listener.http.arn
   priority     = 100
   action {
     type             = "forward"
@@ -94,7 +104,7 @@ resource "aws_lb_listener_rule" "ecs" {
 # Target Group
 # -----------------------------------------
 resource "aws_lb_target_group" "ecs" {
-  name                 = "corperate-ecs-target-group"
+  name                 = "corporate-ecs-target-group"
   target_type          = "ip"
   vpc_id               = aws_vpc.this.id
   port                 = 80

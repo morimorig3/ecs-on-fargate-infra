@@ -1,0 +1,13 @@
+[
+  {
+    "name": "corporate_${environment}_ecs_container",
+    "image": "${aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/${repository_name}:latest",
+    "essential": true,
+    "portMappings": [
+      {
+        "protocol": "tcp",
+        "containerPort": 80
+      }
+    ]
+  }
+]

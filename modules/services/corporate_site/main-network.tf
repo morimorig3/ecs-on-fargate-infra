@@ -7,7 +7,7 @@ locals {
 # VPC
 # -----------------------------------------
 resource "aws_vpc" "this" {
-  cidr_block           = "10.0.0.0/16"
+  cidr_block           = var.vpc_cidr_block
   enable_dns_support   = true      # AWS の DNS サーバーによる名前解決を有効にする
   enable_dns_hostnames = true      # VPC 内のリソースにパブリック DNS ホスト名を自動的に割り当てる
   instance_tenancy     = "default" # VPC内インスタンスのテナント属性を指定
@@ -24,7 +24,7 @@ resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
   tags = {
-    Name = "${var.environment}-internet-gateway"
+    Name = "corporate-${var.environment}-igw"
   }
 }
 
@@ -36,9 +36,10 @@ resource "aws_subnet" "public" {
   count                   = length(local.availability_zones)
   availability_zone       = local.availability_zones[count.index]
   cidr_block              = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index)
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = true # パブリックIPアドレスを割り当て
+
   tags = {
-    Name = "${var.environment}-public-subnet-${local.availability_zones[count.index]}"
+    Name = "corporate-${var.environment}-public-subnet-${local.availability_zones[count.index]}"
   }
 }
 
@@ -50,18 +51,17 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    name = "${var.environment}-private-subnet-${local.availability_zones[count.index]}"
+    name = "corporate-${var.environment}-private-subnet-${local.availability_zones[count.index]}"
   }
 }
 
 # -----------------------------------------
 # Route Table
 # -----------------------------------------
-// Public
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
   tags = {
-    name = "${var.environment}-public-route-table"
+    name = "corporate-${var.environment}-public-route-table"
   }
 }
 resource "aws_route" "default_route" {
@@ -86,14 +86,6 @@ resource "aws_route_table_association" "private" {
   count          = length(aws_subnet.private)
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
-}
-
-module "vpc_security_group" {
-  source     = "../../security_group"
-  name       = "ecs-sg"
-  vpc_id     = aws_vpc.this.id
-  port       = 80
-  cidr_block = local.all_ip
 }
 
 # -----------------------------------------
@@ -128,21 +120,26 @@ resource "aws_vpc_endpoint_route_table_association" "private_s3" {
   route_table_id  = aws_route_table.private[count.index].id
 }
 
+# -----------------------------------------
+# Security Group for VPC Endpoints
+# -----------------------------------------
 resource "aws_security_group" "vpc_endpoint" {
   name   = "vpc_endpoint_sg"
   vpc_id = aws_vpc.this.id
+}
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.this.cidr_block]
-  }
+resource "aws_vpc_security_group_ingress_rule" "vpc_endpoint_ingress" {
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = aws_vpc.this.cidr_block
+  security_group_id = aws_security_group.vpc_endpoint.id
+}
 
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.this.cidr_block]
-  }
+resource "aws_vpc_security_group_egress_rule" "vpc_endpoint_egress" {
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = aws_vpc.this.cidr_block
+  security_group_id = aws_security_group.vpc_endpoint.id
 }

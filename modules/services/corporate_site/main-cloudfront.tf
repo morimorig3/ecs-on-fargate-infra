@@ -1,12 +1,12 @@
-resource "aws_cloudfront_distribution" "corperate_cloudfront" {
+resource "aws_cloudfront_distribution" "corporate_cloudfront" {
   origin {
-    domain_name = aws_lb.this.name
+    domain_name = aws_lb.this.dns_name
     origin_id   = aws_lb.this.id
 
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = "match-viewer"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -14,11 +14,11 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
   default_root_object = "index.html"
   is_ipv6_enabled     = true
   http_version        = "http2" # デフォルトのhttp2を明示的に指定。
-  comment             = "corperate_cloudfront"
+  comment             = "corporate_cloudfront"
 
   # distribution用のCNAME
-  # Route53でCloudFrontのエイリアスを設定する場合、この値とレコードがが等しくなる必要がある。
-  aliases = ["bita.jp"]
+  # Route53でCloudFrontのエイリアスを設定する場合、この値とレコードが等しくなる必要がある。
+  # aliases = [var.domain_name]
 
   # Errorレスポンスのカスタマイズ設定。
   custom_error_response {
@@ -30,14 +30,14 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
 
   # キャッシュのデフォルト設定。
   default_cache_behavior {
-    allowed_methods = ["HEAD", "GET", "PUT", "POST", "DELETE", "PATCH"] # CloudFrontで許可するメソッド。
-    cached_methods  = ["HEAD", "GET"]                                   # キャッシュするメソッド。
-    compress        = true                                              # 高速化のためコンテンツ圧縮(gzip)を許可する。
+    allowed_methods = ["HEAD", "GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS"] # CloudFrontで許可するメソッド。
+    cached_methods  = ["HEAD", "GET"]                                              # キャッシュするメソッド。
+    compress        = true                                                         # 高速化のためコンテンツ圧縮(gzip)を許可する。
     # Cache-Control or Expires がリクエストのヘッダーに無い時のデフォルトのTTL。
-    default_ttl            = 86400               # デフォルトの1日を明示的に指定。
-    viewer_protocol_policy = "redirect-to-https" # HTTPS通信のみ許可する。
+    default_ttl = 86400 # デフォルトの1日を明示的に指定。
+    # viewer_protocol_policy = "redirect-to-https" # HTTPS通信のみ許可する。
+    viewer_protocol_policy = "allow-all"
     target_origin_id       = aws_lb.this.id
-
 
     max_ttl = 31536000 # デフォルトの365日を明示的に指定。
     min_ttl = 0        # デフォルトの0sを明示的に指定。
@@ -53,11 +53,11 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
   }
 
   # アクセスログ設定
-  logging_config {
-    bucket          = aws_s3_bucket.cloudfront_log_bucket.bucket_domain_name
-    include_cookies = true # Cookieもアクセスログに含めたいため有効。
-    prefix          = "cloudfront/"
-  }
+  # logging_config {
+  #   bucket          = aws_s3_bucket.cloudfront_log_bucket.bucket
+  #   include_cookies = true # Cookieもアクセスログに含めたいため有効。
+  #   prefix          = "cloudfront/"
+  # }
 
   restrictions {
     geo_restriction {
@@ -68,6 +68,7 @@ resource "aws_cloudfront_distribution" "corperate_cloudfront" {
   # TODO SSL証明書の設定
   # SSL証明書の設定
   viewer_certificate {
+    cloudfront_default_certificate = true
     # cloudfront_default_certificate = false # ACMで作成した証明書を使用するため無効。
     # acm_certificate_arn            = "arn:aws:acm:us-east-1:XXXXXXXXXXXXXX:certificate/XXXXXXXXXXXXXXXXXXXXXXXXXXX"
     # minimum_protocol_version       = "TLSv1.2_2019" # SSLの最小バージョン。AWSの推奨値を採用。
