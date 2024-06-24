@@ -18,7 +18,7 @@ resource "aws_cloudfront_distribution" "corporate_cloudfront" {
 
   # distribution用のCNAME
   # Route53でCloudFrontのエイリアスを設定する場合、この値とレコードが等しくなる必要がある。
-  # aliases = [var.domain_name]
+  aliases = [var.domain_name]
 
   # Errorレスポンスのカスタマイズ設定。
   custom_error_response {

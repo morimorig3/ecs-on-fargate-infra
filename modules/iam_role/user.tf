@@ -3,6 +3,7 @@
 # -----------------------------------------
 
 variable "directors" {
+  type = map(string)
   default = {
     "user1" = "User1",
     "user2" = "User2",
@@ -16,6 +17,7 @@ variable "directors" {
 # -----------------------------------------
 
 variable "engineers" {
+  type = map(string)
   default = {
     "user1" = "User1",
     "user2" = "User2",

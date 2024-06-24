@@ -12,8 +12,8 @@ resource "aws_ecs_cluster" "corporate_ecs_cluster" {
 # タスク定義
 resource "aws_ecs_task_definition" "corporate_ecs_task_definition" {
   family                   = "corporate_${var.environment}_ecs_task_definition"
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = var.fargate_cpu
+  memory                   = var.fargate_memory
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
