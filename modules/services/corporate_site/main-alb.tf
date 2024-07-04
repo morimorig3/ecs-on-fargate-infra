@@ -18,7 +18,7 @@ resource "aws_lb" "this" {
   # }
   security_groups = [
     module.http_sg.security_group_id,
-    # module.https_sg.security_group_id,
+    module.https_sg.security_group_id,
   ]
 }
 
@@ -49,14 +49,23 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = "80"
   protocol          = "HTTP"
-  # default_action {
-  #   type = "redirect"
-  #   redirect {
-  #     port        = "443"
-  #     protocol    = "HTTPS"
-  #     status_code = "HTTP_301"
-  #   }
-  # }
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# 443 番ポートでは HTTPS プロトコルのリクエストを受け付け、固定の HTTP レスポンスを返却
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = var.certificate_arn_tokyo
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -67,27 +76,8 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# 443 番ポートでは HTTPS プロトコルのリクエストを受け付け、固定の HTTP レスポンスを返却
-# resource "aws_lb_listener" "https" {
-#   load_balancer_arn = aws_lb.this.arn
-#   port              = "443"
-#   protocol          = "HTTPS"
-#   # TODO SSL証明書のセッティング後に追記
-#   # certificate_arn = [後ほど設定]
-#   ssl_policy = "ELBSecurityPolicy-2016-08"
-#   default_action {
-#     type = "fixed-response"
-#     fixed_response {
-#       content_type = "text/plain"
-#       message_body = "これは「HTTPS」です"
-#       status_code  = "200"
-#     }
-#   }
-# }
-
 resource "aws_lb_listener_rule" "ecs" {
-  # listener_arn = aws_lb_listener.https.arn
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = aws_lb_listener.https.arn
   priority     = 100
   action {
     type             = "forward"

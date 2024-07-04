@@ -1,5 +1,5 @@
 variable "repository_name" {
-  description = "リポジトリ名"
+  description = "作成するリポジトリ名"
   type        = string
 }
 

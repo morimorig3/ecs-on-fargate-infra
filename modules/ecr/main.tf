@@ -24,8 +24,9 @@ data "aws_ecr_lifecycle_policy_document" "this" {
 }
 
 resource "aws_ecr_repository" "this" {
-  image_tag_mutability = "MUTABLE"
   name                 = var.repository_name
+  image_tag_mutability = "MUTABLE"
+
   encryption_configuration {
     encryption_type = "AES256"
   }
@@ -33,8 +34,6 @@ resource "aws_ecr_repository" "this" {
   image_scanning_configuration {
     scan_on_push = "true"
   }
-
-  force_delete = true
 }
 
 resource "aws_ecr_lifecycle_policy" "this" {

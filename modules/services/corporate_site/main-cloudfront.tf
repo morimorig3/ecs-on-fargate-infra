@@ -1,6 +1,7 @@
 resource "aws_cloudfront_distribution" "corporate_cloudfront" {
+  enabled = true
   origin {
-    domain_name = aws_lb.this.dns_name
+    domain_name = aws_route53_record.this.fqdn
     origin_id   = aws_lb.this.id
 
     custom_origin_config {
@@ -10,7 +11,6 @@ resource "aws_cloudfront_distribution" "corporate_cloudfront" {
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
-  enabled             = true
   default_root_object = "index.html"
   is_ipv6_enabled     = true
   http_version        = "http2" # デフォルトのhttp2を明示的に指定。
@@ -34,10 +34,10 @@ resource "aws_cloudfront_distribution" "corporate_cloudfront" {
     cached_methods  = ["HEAD", "GET"]                                              # キャッシュするメソッド。
     compress        = true                                                         # 高速化のためコンテンツ圧縮(gzip)を許可する。
     # Cache-Control or Expires がリクエストのヘッダーに無い時のデフォルトのTTL。
-    default_ttl = 86400 # デフォルトの1日を明示的に指定。
-    # viewer_protocol_policy = "redirect-to-https" # HTTPS通信のみ許可する。
-    viewer_protocol_policy = "allow-all"
-    target_origin_id       = aws_lb.this.id
+    default_ttl            = 86400               # デフォルトの1日を明示的に指定。
+    viewer_protocol_policy = "redirect-to-https" # HTTPS通信のみ許可する。
+    # viewer_protocol_policy = "allow-all"
+    target_origin_id = aws_lb.this.id
 
     max_ttl = 31536000 # デフォルトの365日を明示的に指定。
     min_ttl = 0        # デフォルトの0sを明示的に指定。
@@ -68,13 +68,12 @@ resource "aws_cloudfront_distribution" "corporate_cloudfront" {
   # TODO SSL証明書の設定
   # SSL証明書の設定
   viewer_certificate {
-    cloudfront_default_certificate = true
-    # cloudfront_default_certificate = false # ACMで作成した証明書を使用するため無効。
-    # acm_certificate_arn            = "arn:aws:acm:us-east-1:XXXXXXXXXXXXXX:certificate/XXXXXXXXXXXXXXXXXXXXXXXXXXX"
-    # minimum_protocol_version       = "TLSv1.2_2019" # SSLの最小バージョン。AWSの推奨値を採用。
+    cloudfront_default_certificate = false # ACMで作成した証明書を使用するため無効。
+    acm_certificate_arn            = var.certificate_arn_virginia
+    minimum_protocol_version       = "TLSv1.2_2019" # SSLの最小バージョン。AWSの推奨値を採用。
     # # SNI(名前ベース)のSSL機能を使用する。
     # # https://aws.amazon.com/jp/cloudfront/custom-ssl-domains/
-    # ssl_support_method = "sni-only"
+    ssl_support_method = "sni-only"
   }
 
 }

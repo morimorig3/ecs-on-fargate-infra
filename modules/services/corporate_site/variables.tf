@@ -43,3 +43,13 @@ variable "route53_zone_name" {
   description = "Route53ホストゾーン名"
   type        = string
 }
+
+variable "certificate_arn_tokyo" {
+  description = "ACMで発行した証明書のarn"
+  type        = string
+}
+
+variable "certificate_arn_virginia" {
+  description = "ACMで発行した証明書のarn"
+  type        = string
+}

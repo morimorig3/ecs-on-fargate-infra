@@ -17,19 +17,7 @@ resource "aws_ecs_task_definition" "corporate_ecs_task_definition" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  # container_definitions = jsonencode([
-  #   {
-  #     "name" : "corporate-${var.environment}-ecs-container",
-  #     "image" : "${var.aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/${var.repository_name}:latest", // ECRのリポジトリを指定する。
-  #     "essential" : true,
-  #     "portMappings" : [
-  #       {
-  #         "protocol" : "tcp",
-  #         "containerPort" : 80
-  #       }
-  #     ]
-  #   }
-  # ])
+
   container_definitions = templatefile("${path.module}/container_definitions.tftpl", {
     environment     = var.environment,
     aws_account_id  = var.aws_account_id,
