@@ -1,5 +1,7 @@
 # コーポレートサイト AWS　- Terraform
 
+![構成図](./infra.drawio.png)
+
 ## 命名規則
 - corporate-production: 本番環境用のリソースにつけるプレフィックス
 - corporate-staging: プレビュー用のリソースにつけるプレフィックス
