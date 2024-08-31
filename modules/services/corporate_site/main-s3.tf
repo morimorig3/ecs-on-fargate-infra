@@ -14,7 +14,7 @@ data "aws_iam_policy_document" "alb_log" {
 # Log Bucket for ALB
 # -----------------------------------------
 resource "aws_s3_bucket" "alb_log_bucket" {
-  bucket        = "${var.environment}-alb-log-jp-bita"
+  bucket        = "${var.environment}-alb-log-jp-morimorig3"
   force_destroy = true # バケット内にリソースが残っていても削除するかどうか
 }
 
@@ -38,6 +38,6 @@ resource "aws_s3_bucket_policy" "alb_log_bucket_policy" {
 # Log Bucket for CloudFront
 # -----------------------------------------
 resource "aws_s3_bucket" "cloudfront_log_bucket" {
-  bucket        = "${var.environment}-cloudfront-log-jp-bita"
+  bucket        = "${var.environment}-cloudfront-log-jp-morimorig3"
   force_destroy = true # バケット内にリソースが残っていても削除するかどうか
 }

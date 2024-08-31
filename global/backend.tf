@@ -1,8 +1,9 @@
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "bita-corporate-terraform-state"
+  bucket = "morimorig3-corporate-terraform-state"
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "enabled" {
@@ -30,7 +31,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 }
 
 resource "aws_dynamodb_table" "terraform_locks" {
-  name         = "bita-corporate-terraform-locks"
+  name         = "morimorig3-corporate-terraform-locks"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 

@@ -2,13 +2,13 @@ terraform {
   required_version = "~> 1.8.0"
 
   # NOTE: 初回applyをしてS3を作成してからコメントアウトを外す ※README参照
-  backend "s3" {
-    bucket         = "bita-corporate-terraform-state"
-    key            = "global/terraform.state"
-    region         = "ap-northeast-1"
-    dynamodb_table = "bita-corporate-terraform-locks"
-    encrypt        = true
-  }
+  # backend "s3" {
+  #   bucket         = "morimorig3-corporate-terraform-state"
+  #   key            = "global/terraform.state"
+  #   region         = "ap-northeast-1"
+  #   dynamodb_table = "morimorig3-corporate-terraform-locks"
+  #   encrypt        = true
+  # }
 
   required_providers {
     aws = {
